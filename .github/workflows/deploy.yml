@@ -2,8 +2,10 @@ name: Publish VS Code Extension
 
 on:
   push:
+    branches:
+      - main        # run on push to main branch
     tags:
-      - 'v*'  # triggers on tags like v0.0.2, v1.0.0
+      - 'v*'        # also run on tag push (for release)
 
 jobs:
   publish:
