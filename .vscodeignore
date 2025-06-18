@@ -8,3 +8,9 @@ README.md
 *.ts
 *.log
 node_modules/
+node_modules
+src
+.vscode
+.github
+*.map
+*.ts
