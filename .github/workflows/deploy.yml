@@ -1,14 +1,12 @@
-name: Publish VS Code Extension
+name: Automated Release
 
 on:
   push:
     branches:
-      - main        # run on push to main branch
-    tags:
-      - 'v*'        # also run on tag push (for release)
+      - main
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,11 +20,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Compile TypeScript
-        run: npm run compile
-
-      - name: Install vsce
-        run: npm install -g @vscode/vsce
-
-      - name: Publish to VS Code Marketplace
-        run: vsce publish -p ${{ secrets.VSCE_PAT }}
+      - name: Bump version and generate changelog
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          npx standard-version
+          git push --follow-tags origin main
