@@ -5,10 +5,12 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write  # 🔥 REQUIRED for pushing tags/commits
+
 jobs:
   release:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +32,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          npx standard-version
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
+          npx standard-version
           git push --follow-tags origin main
