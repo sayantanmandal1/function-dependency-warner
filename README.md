@@ -105,7 +105,7 @@ code --install-extension function-dependency-warner-0.0.1.vsix
 - Assumes a flat JSON dependency structure.
 - Does not parse code statically (yet); relies on string matching.
 
-> PRs welcome!
+> PRs welcome!!
 
 ---
 
