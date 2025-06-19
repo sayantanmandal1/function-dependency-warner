@@ -38,6 +38,7 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
+const utils_1 = require("./utils");
 let dependencyGraph = {};
 // Recursively collect all dependents
 function getAllDependents(func, visited = new Set()) {
@@ -47,6 +48,23 @@ function getAllDependents(func, visited = new Set()) {
     const direct = dependencyGraph[func] || [];
     const indirect = direct.flatMap(dep => getAllDependents(dep, visited));
     return [...new Set([...direct, ...indirect])];
+}
+function findFunctionLocationsInWorkspace(funcNames) {
+    return new Promise((resolve) => {
+        vscode.workspace.findFiles('**/*.{js,ts,java,py}', '**/node_modules/**').then((uris) => {
+            const allLocations = [];
+            for (const uri of uris) {
+                const filePath = uri.fsPath;
+                const found = (0, utils_1.findAllFunctionsInFile)(filePath);
+                for (const loc of found) {
+                    if (funcNames.includes(loc.name)) {
+                        allLocations.push(loc);
+                    }
+                }
+            }
+            resolve(allLocations);
+        });
+    });
 }
 function activate(context) {
     const configPath = vscode.workspace.getConfiguration('funcWarn').get('dependencyFile');
@@ -71,7 +89,7 @@ function activate(context) {
         vscode.window.showErrorMessage(`Failed to load dependency file: ${err}`);
         return;
     }
-    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
+    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(async (event) => {
         const editor = vscode.window.activeTextEditor;
         if (!editor || editor.document !== event.document)
             return;
@@ -82,7 +100,20 @@ function activate(context) {
                 fullText.includes(`${func}(`)) {
                 const deps = getAllDependents(func);
                 if (deps.length > 0) {
-                    vscode.window.showWarningMessage(`⚠️ Warning: Changing '${func}' may affect: ${deps.join(', ')}`);
+                    const locations = await findFunctionLocationsInWorkspace([func, ...deps]);
+                    console.log('DEBUG LOCATIONS', locations);
+                    const details = locations.length > 0
+                        ? locations.map(l => `${l.name} (${path.basename(l.file)}:${l.line})`).join(', ')
+                        : 'No locations found.';
+                    vscode.window.showWarningMessage(`⚠️ Warning: Changing '${func}' may affect: ${deps.map(dep => {
+                        const locs = locations.filter(l => l.name === dep);
+                        if (locs.length > 0) {
+                            return locs.map(l => `${dep} (${path.basename(l.file)}:${l.line})`).join(', ');
+                        }
+                        else {
+                            return dep + ' (location not found)';
+                        }
+                    }).join(', ')} `);
                 }
                 break;
             }

@@ -1,4 +1,3 @@
-
 # Function Dependency Warner
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/msaya.function-dependency-warner.svg)](https://marketplace.visualstudio.com/items?itemName=msaya.function-dependency-warner)
@@ -101,11 +100,7 @@ code --install-extension function-dependency-warner-0.0.1.vsix
 
 ## 📌 Known Limitations
 
-- Only matches simple function names (e.g. `function saveUser(...)`)—does not yet support arrow functions or methods inside classes.
-- Assumes a flat JSON dependency structure.
-- Does not parse code statically (yet); relies on string matching.
-
-> PRs welcome!!
+> Now supports arrow functions, class methods, and static code analysis for function detection. Handles nested dependency structures.
 
 ---
 
