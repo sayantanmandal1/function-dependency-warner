@@ -2,8 +2,8 @@
   "name": "function-dependency-warner",
   "displayName": "Function Dependency Warner",
   "description": "Warns about code changes that affect dependent functions.",
-"version": "0.0.9",
-"publisher": "msaya",
+  "version": "0.0.9",
+  "publisher": "msaya",
   "engines": {
     "vscode": "^1.101.0"
   },
@@ -11,7 +11,13 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:java",
+    "onLanguage:python",
+    "onDidOpenTextDocument",
+    "onDidChangeTextDocument"
   ],
   "main": "./dist/extension.js",
   "contributes": {
