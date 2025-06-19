@@ -2,7 +2,11 @@
   "name": "function-dependency-warner",
   "displayName": "Function Dependency Warner",
   "description": "Warns about code changes that affect dependent functions.",
+<<<<<<< HEAD
   "version": "0.0.9",
+=======
+  "version": "0.0.6",
+>>>>>>> 9971622402191babc65da3d580fe16d200475c0b
   "publisher": "msaya",
   "engines": {
     "vscode": "^1.101.0"
