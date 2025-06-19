@@ -1,18 +1,39 @@
-.vscode/
-.git/
+# Development files
+.vscode/**
+.vscode-test/**
 .gitignore
-src/
-tsconfig.json
-README.md
-*.map
-*.ts
-*.log
-node_modules/
-node_modules
-src
-.vscode
-.github
-*.map
-*.ts
-function-dependency-warner*
+.yarnrc
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+src/**
+test/**
+test-project/**
 image.png
+# Keep only essential node_modules
+node_modules/**
+!node_modules/@babel/parser/lib/**
+!node_modules/@babel/traverse/lib/**
+!node_modules/@babel/types/lib/**
+
+# Ignore all markdown files except README
+*.md
+!README.md
+
+# No need for build and config files
+webpack.config.js
+.vscodeignore
+.npmrc
+.npmignore
+.github/**
+.git/**
+
+# Others
+**/*.vsix
+.history/**
+**/CVS/**
+**/.DS_Store/**
+**/__pycache__/**
+**/.pytest_cache/**
+**/*.pyc

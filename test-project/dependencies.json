@@ -1,0 +1,10 @@
+{
+    "getUserById": ["findById", "logDeletion"],
+    "createUser": ["save", "validateUser"],
+    "deleteUser": ["deleteById", "logDeletion"],
+    "findById": ["userRepository.findById"],
+    "save": ["userRepository.save", "validateUser"],
+    "deleteById": ["userRepository.deleteById", "logDeletion"],
+    "validateUser": [],
+    "logDeletion": []
+}

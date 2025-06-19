@@ -1,7 +1,18 @@
-import * as babelParser from '@babel/parser';
-import traverse, { NodePath } from '@babel/traverse';
-import * as t from '@babel/types';
 import * as path from 'path';
+import * as fs from 'fs';
+
+// Lazy load babel modules
+let babelParser: typeof import('@babel/parser');
+let babelTraverse: typeof import('@babel/traverse').default;
+let babelTypes: typeof import('@babel/types');
+
+async function loadBabel() {
+  if (!babelParser) {
+    babelParser = await import('@babel/parser');
+    babelTraverse = (await import('@babel/traverse')).default;
+    babelTypes = await import('@babel/types');
+  }
+}
 
 export interface FunctionLocation {
   name: string;
@@ -10,118 +21,152 @@ export interface FunctionLocation {
   type: string;
 }
 
-function parseJSorTS(filePath: string, code: string): FunctionLocation[] {
-  const ast = babelParser.parse(code, {
-    sourceType: 'unambiguous',
-    plugins: ['typescript', 'classProperties'],
-  });
-  const results: FunctionLocation[] = [];
-  traverse(ast, {
-    FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
-      if (path.node.id && path.node.loc) {
-        results.push({
-          name: path.node.id.name,
-          file: filePath,
-          line: path.node.loc.start.line,
-          type: 'declaration',
-        });
-      }
-    },
-    VariableDeclarator(path: NodePath<t.VariableDeclarator>) {
-      if (
-        path.node.init &&
-        (t.isArrowFunctionExpression(path.node.init) || t.isFunctionExpression(path.node.init)) &&
-        path.node.id.type === 'Identifier' &&
-        path.node.loc
-      ) {
-        results.push({
-          name: path.node.id.name,
-          file: filePath,
-          line: path.node.loc.start.line,
-          type: 'arrow',
-        });
-      }
-    },
-    ClassMethod(path: NodePath<t.ClassMethod>) {
-      if (t.isIdentifier(path.node.key) && path.node.loc) {
-        results.push({
-          name: path.node.key.name,
-          file: filePath,
-          line: path.node.loc.start.line,
-          type: 'class-method',
-        });
-      }
-    },
-  });
-  return results;
+// Cache parsed ASTs to avoid reprocessing
+const astCache = new Map<string, any>();
+
+async function parseJSorTS(filePath: string, code: string): Promise<FunctionLocation[]> {
+  try {
+    await loadBabel();
+    
+    let ast = astCache.get(filePath);
+    if (!ast) {
+      ast = babelParser.parse(code, {
+        sourceType: 'unambiguous',
+        plugins: ['typescript', 'classProperties'],
+      });
+      astCache.set(filePath, ast);
+    }
+
+    const results: FunctionLocation[] = [];
+
+    babelTraverse(ast, {
+      FunctionDeclaration(path) {
+        if (path.node.id && path.node.loc) {
+          results.push({
+            name: path.node.id.name,
+            file: filePath,
+            line: path.node.loc.start.line,
+            type: 'declaration',
+          });
+        }
+      },
+      VariableDeclarator(path) {
+        if (
+          path.node.init &&
+          (babelTypes.isArrowFunctionExpression(path.node.init) || babelTypes.isFunctionExpression(path.node.init)) &&
+          babelTypes.isIdentifier(path.node.id) &&
+          path.node.loc
+        ) {
+          results.push({
+            name: path.node.id.name,
+            file: filePath,
+            line: path.node.loc.start.line,
+            type: 'arrow',
+          });
+        }
+      },
+      ClassMethod(path) {
+        if (babelTypes.isIdentifier(path.node.key) && path.node.loc) {
+          results.push({
+            name: path.node.key.name,
+            file: filePath,
+            line: path.node.loc.start.line,
+            type: 'method',
+          });
+        }
+      },
+    });
+    return results;
+  } catch (err) {
+    console.error('[FDW] Error parsing JS/TS file:', filePath, err);
+    return [];
+  }
 }
 
 function parseJava(filePath: string, code: string): FunctionLocation[] {
-  // Simple regex-based Java method detection
-  const results: FunctionLocation[] = [];
-  const methodRegex = /(?:public|private|protected)?\s*(?:static)?\s*[\w<>\[\]]+\s+(\w+)\s*\([^)]*\)\s*\{/g;
-  const lines = code.split(/\r?\n/);
-  lines.forEach((line, idx) => {
-    const match = methodRegex.exec(line);
-    if (match) {
-      results.push({
-        name: match[1],
-        file: filePath,
-        line: idx + 1,
-        type: 'java-method',
+  try {
+    const results: FunctionLocation[] = [];
+    const lines = code.split('\n');
+    const methodRegex = /(?:public|private|protected|static|\s) +[\w\<\>\[\]]+\s+(\w+) *\([^\)]*\) *\{?/g;
+    
+    lines.forEach((line, index) => {
+      const matches = [...line.matchAll(methodRegex)];
+      matches.forEach(match => {
+        if (match[1]) {
+          results.push({
+            name: match[1],
+            file: filePath,
+            line: index + 1,
+            type: 'method'
+          });
+        }
       });
-    }
-    methodRegex.lastIndex = 0;
-  });
-  return results;
+    });
+    
+    return results;
+  } catch (err) {
+    console.error('[FDW] Error parsing Java file:', filePath, err);
+    return [];
+  }
 }
 
 function parsePython(filePath: string, code: string): FunctionLocation[] {
-  // Simple regex-based Python function detection
-  const results: FunctionLocation[] = [];
-  const funcRegex = /^\s*def\s+(\w+)\s*\(/gm;
-  let match;
-  while ((match = funcRegex.exec(code)) !== null) {
-    const line = code.slice(0, match.index).split(/\r?\n/).length;
-    results.push({
-      name: match[1],
-      file: filePath,
-      line: line,
-      type: 'python-function',
+  try {
+    const results: FunctionLocation[] = [];
+    const lines = code.split('\n');
+    const functionRegex = /^\s*def\s+([a-zA-Z_]\w*)\s*\(/;
+    
+    lines.forEach((line, index) => {
+      const match = line.match(functionRegex);
+      if (match) {
+        results.push({
+          name: match[1],
+          file: filePath,
+          line: index + 1,
+          type: 'function'
+        });
+      }
     });
+    
+    return results;
+  } catch (err) {
+    console.error('[FDW] Error parsing Python file:', filePath, err);
+    return [];
   }
-  return results;
 }
 
-export function findAllFunctionsInFile(filePath: string): FunctionLocation[] {
-  const fs = require('fs');
-  const ext = path.extname(filePath).toLowerCase();
-  const code = fs.readFileSync(filePath, 'utf-8');
-  if (ext === '.js' || ext === '.ts') {
-    return parseJSorTS(filePath, code);
-  } else if (ext === '.java') {
-    return parseJava(filePath, code);
-  } else if (ext === '.py') {
-    return parsePython(filePath, code);
+// Cache file contents to avoid repeated disk reads
+const fileContentCache = new Map<string, string>();
+
+export async function findAllFunctionsInFile(filePath: string): Promise<FunctionLocation[]> {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
+
+    let code = fileContentCache.get(filePath);
+    if (!code) {
+      code = fs.readFileSync(filePath, 'utf8');
+      fileContentCache.set(filePath, code);
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    
+    switch (ext) {
+      case '.js':
+      case '.ts':
+      case '.jsx':
+      case '.tsx':
+        return parseJSorTS(filePath, code);
+      case '.java':
+        return parseJava(filePath, code);
+      case '.py':
+        return parsePython(filePath, code);
+      default:
+        return [];
+    }
+  } catch (err) {
+    console.error('[FDW] Error processing file:', filePath, err);
+    return [];
   }
-  // Add more language parsers here as needed
-  return [];
-}
-
-export function flattenDependencies(graph: Record<string, string[]>, root: string): string[] {
-  const visited = new Set<string>();
-  const stack = [root];
-  const result: string[] = [];
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (!current || visited.has(current)) continue;
-
-    visited.add(current);
-    const deps = graph[current] || [];
-    result.push(...deps);
-    stack.push(...deps);
-  }
-
-  return Array.from(new Set(result));
 }
