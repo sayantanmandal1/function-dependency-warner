@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: write  # 🔥 REQUIRED for pushing tags/commits
+  contents: write  
 
 jobs:
   release:
