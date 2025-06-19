@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.12](https://github.com/sayantanmandal1/function-dependency-warner/compare/v0.0.10...v0.0.12) (2025-06-19)
+
 ### 0.0.12 (2025-06-19)
 
 ### 0.0.10 (2025-06-19)
