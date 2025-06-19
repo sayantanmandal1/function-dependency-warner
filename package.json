@@ -2,7 +2,7 @@
   "name": "function-dependency-warner",
   "displayName": "Function Dependency Warner",
   "description": "Warns about code changes that affect dependent functions.",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "publisher": "msaya",
   "engines": {
     "vscode": "^1.101.0"
@@ -32,9 +32,12 @@
     "release": "standard-version",
     "postrelease": "git push --follow-tags origin main"
   },
-  "devDependencies": {
+  "dependencies": {
     "@babel/parser": "^7.24.0",
     "@babel/traverse": "^7.24.0",
+    "@babel/types": "^7.24.0"
+  },
+  "devDependencies": {
     "@types/babel__traverse": "^7.20.7",
     "@types/node": "^18.0.0",
     "@types/vscode": "^1.101.0",
