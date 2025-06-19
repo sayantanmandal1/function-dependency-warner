@@ -18,9 +18,7 @@
 
 ## 📷 Demo
 
-![demo](https://user-images.githubusercontent.com/your-screenshot.gif)
-<!-- Replace with actual gif or image once ready -->
-
+![Demo](image.png)
 ---
 
 ## 📦 Installation
